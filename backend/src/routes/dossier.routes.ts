@@ -24,7 +24,7 @@ router.post('/', async (req: AuthRequest, res) => {
         lieuAccident,
         descriptionAccident,
         victimeId: req.userId!,
-        statut: 'CRÉÉ',
+        statut: 'CREE',
       },
     });
 
