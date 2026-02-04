@@ -50,7 +50,7 @@ model Dossier {
   lieuAccident String?
   descriptionAccident String?
   
-  statut DossierStatus @default(CRÉÉ)
+  statut DossierStatus @default(CREE)
   
   documents Document[]
   statusHistory DossierStatusHistory[]
