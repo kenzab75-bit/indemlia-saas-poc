@@ -25,6 +25,7 @@ model User {
   documents Document[]
   statusChanges DossierStatusHistory[]
   auditLogs AuditLog[]
+  notifications Notification[]
 
   @@index([email])
   @@index([role])
