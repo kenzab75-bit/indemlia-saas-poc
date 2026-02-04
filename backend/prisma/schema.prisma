@@ -1,6 +1,7 @@
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
 }
 
 generator client {
@@ -22,10 +23,10 @@ model User {
 
   dossiers Dossier[] @relation("VictimeDossiers")
   expertDossiers Dossier[] @relation("ExpertDossiers")
-  documents Document[]
-  statusChanges DossierStatusHistory[]
-  auditLogs AuditLog[]
-  notifications Notification[]
+  documents Document[] @relation("UserDocuments")
+  statusChanges DossierStatusHistory[] @relation("UserStatusChanges")
+  auditLogs AuditLog[] @relation("UserAuditLogs")
+  notifications Notification[] @relation("UserNotifications")
 
   @@index([email])
   @@index([role])
@@ -53,8 +54,9 @@ model Dossier {
   
   statut DossierStatus @default(CREE)
   
-  documents Document[]
-  statusHistory DossierStatusHistory[]
+  documents Document[] @relation("DossierDocuments")
+  statusHistory DossierStatusHistory[] @relation("DossierStatusHistory")
+  notifications Notification[] @relation("DossierNotifications")
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,10 +81,10 @@ model Document {
   id String @id @default(uuid())
   
   dossierId String
-  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  dossier Dossier @relation("DossierDocuments", fields: [dossierId], references: [id], onDelete: Cascade)
   
   uploadedById String
-  uploadedBy User @relation(fields: [uploadedById], references: [id])
+  uploadedBy User @relation("UserDocuments", fields: [uploadedById], references: [id])
   
   fileName String
   fileType String?
@@ -102,10 +104,10 @@ model DossierStatusHistory {
   id String @id @default(uuid())
   
   dossierId String
-  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  dossier Dossier @relation("DossierStatusHistory", fields: [dossierId], references: [id], onDelete: Cascade)
   
   changedById String
-  changedBy User @relation(fields: [changedById], references: [id])
+  changedBy User @relation("UserStatusChanges", fields: [changedById], references: [id])
   
   ancienStatut String?
   nouveauStatut String
@@ -122,7 +124,7 @@ model AuditLog {
   id String @id @default(uuid())
   
   userId String?
-  user User? @relation(fields: [userId], references: [id])
+  user User? @relation("UserAuditLogs", fields: [userId], references: [id])
   
   userRole String?
   action String
@@ -145,13 +147,14 @@ model Notification {
   id String @id @default(uuid())
   
   recipientId String
-  recipient User @relation(fields: [recipientId], references: [id])
+  recipient User @relation("UserNotifications", fields: [recipientId], references: [id])
   
   type String
   subject String
   body String
   
   relatedDossierId String?
+  relatedDossier Dossier? @relation("DossierNotifications", fields: [relatedDossierId], references: [id])
   
   sentAt DateTime?
   readAt DateTime?
