@@ -1,0 +1,163 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id    String  @id @default(uuid())
+  email String  @unique
+  passwordHash String
+  firstName String?
+  lastName String?
+  phone String?
+  role  UserRole @default(VICTIME)
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  dossiers Dossier[] @relation("VictimeDossiers")
+  expertDossiers Dossier[] @relation("ExpertDossiers")
+  documents Document[]
+  statusChanges DossierStatusHistory[]
+  auditLogs AuditLog[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+enum UserRole {
+  VICTIME
+  EXPERT
+  ADMIN
+}
+
+model Dossier {
+  id String @id @default(uuid())
+  victimeId String
+  victime User @relation("VictimeDossiers", fields: [victimeId], references: [id])
+  
+  expertId String?
+  expert User? @relation("ExpertDossiers", fields: [expertId], references: [id])
+  
+  titre String
+  dateAccident DateTime
+  lieuAccident String?
+  descriptionAccident String?
+  
+  statut DossierStatus @default(CRÉÉ)
+  
+  documents Document[]
+  statusHistory DossierStatusHistory[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  archivedAt DateTime?
+
+  @@index([victimeId])
+  @@index([expertId])
+  @@index([statut])
+  @@map("dossiers")
+}
+
+enum DossierStatus {
+  CRÉÉ
+  EN_COURS_EXPERTISE
+  EXPERTISE_COMPLÉTÉE
+  INDEMNISATION_APPROUVÉE
+  INDEMNISATION_REJETÉE
+  ARCHIVÉ
+}
+
+model Document {
+  id String @id @default(uuid())
+  
+  dossierId String
+  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  
+  uploadedById String
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+  
+  fileName String
+  fileType String?
+  fileSizeBytes BigInt?
+  s3Key String
+  s3Url String?
+  
+  createdAt DateTime @default(now())
+  deletedAt DateTime?
+
+  @@index([dossierId])
+  @@index([uploadedById])
+  @@map("documents")
+}
+
+model DossierStatusHistory {
+  id String @id @default(uuid())
+  
+  dossierId String
+  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  
+  changedById String
+  changedBy User @relation(fields: [changedById], references: [id])
+  
+  ancienStatut String?
+  nouveauStatut String
+  raisonChangement String?
+  
+  createdAt DateTime @default(now())
+
+  @@index([dossierId])
+  @@index([changedById])
+  @@map("dossier_status_history")
+}
+
+model AuditLog {
+  id String @id @default(uuid())
+  
+  userId String?
+  user User? @relation(fields: [userId], references: [id])
+  
+  userRole String?
+  action String
+  resourceType String?
+  resourceId String?
+  
+  details Json?
+  ipAddress String?
+  userAgent String?
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id String @id @default(uuid())
+  
+  recipientId String
+  recipient User @relation(fields: [recipientId], references: [id])
+  
+  type String
+  subject String
+  body String
+  
+  relatedDossierId String?
+  
+  sentAt DateTime?
+  readAt DateTime?
+  
+  createdAt DateTime @default(now())
+
+  @@index([recipientId])
+  @@index([sentAt])
+  @@map("notifications")
+}

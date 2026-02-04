@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: indemlia
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: indemlia_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U indemlia']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://indemlia:dev_password@postgres:5432/indemlia_dev
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev_secret_key_change_in_prod
+      S3_BUCKET: indemlia-dev
+      SENDGRID_API_KEY: SG.test_key
+      SENDGRID_FROM_EMAIL: noreply@indemlia.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+    command: npm run dev
+
+volumes:
+  postgres_data:
